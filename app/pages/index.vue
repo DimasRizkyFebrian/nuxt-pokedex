@@ -10,7 +10,7 @@
 
     <ul v-else-if="pokemonResponse && pokemonResponse.results">
       <li v-for="pokemon in pokemonResponse.results" :key="pokemon.name">
-        {{ pokemon.name }}
+        <NuxtLink :to="`/pokemon/${pokemon.name}`">{{ pokemon.name }}</NuxtLink>
       </li>
     </ul>
   </div>
