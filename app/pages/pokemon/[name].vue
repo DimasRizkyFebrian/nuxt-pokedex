@@ -1,53 +1,19 @@
-<template>
-  <div>
-    <div v-if="pending" class="loading">Mencari Pokémon...</div>
-
-    <div v-else-if="error" class="error">
-      Pokémon tidak ditemukan. <NuxtLink to="/">Kembali ke daftar</NuxtLink>
-    </div>
-
-    <div v-else-if="pokemonDetail" class="pokemon-details">
-      <img
-        :src="pokemonDetail.sprites.front_default"
-        :alt="pokemonDetail.name"
-        class="pokemon-image"
-      />
-      <h1>{{ pokemonDetail.name }}</h1>
-
-      <div class="info">
-        <h3>Types</h3>
-        <ul>
-          <li v-for="item in pokemonDetail.types" :key="item.type.name">
-            {{ item.type.name }}
-          </li>
-        </ul>
-      </div>
-
-      <div class="info">
-        <h3>Details</h3>
-        <p>Height: {{ pokemonDetail.height / 10 }} m</p>
-        <p>Weight: {{ pokemonDetail.weight / 10 }} kg</p>
-      </div>
-
-      <NuxtLink to="/">Kembali ke daftar Pokémon</NuxtLink>
-    </div>
-  </div>
-</template>
-
-<script lang="ts" setup>
-// Akses parameter dari URL
+<script setup lang="ts">
 const route = useRoute();
+const pokemonName = route.params.name as string;
 
-// Ambil parameter `name` dari URL, contoh "bulbasur"
-const pokemonName = route.params.name;
-
-// URL API yang dinamis berdasarkan nama Pokemon
-const apiUrl = `https://pokeapi.co/api/v2/pokemon/${pokemonName}`;
-
-// Interface untuk struktur data detail Pokemon
-interface PokemonType {
+// Definisikan interface agar lebih aman dan jelas
+interface PokemonTypeInfo {
   type: {
     name: string;
+  };
+}
+
+interface PokemonSprites {
+  other?: {
+    dream_world: {
+      front_default: string | null;
+    };
   };
 }
 
@@ -55,41 +21,80 @@ interface PokemonDetail {
   name: string;
   height: number;
   weight: number;
-  sprites: {
-    front_default: string;
-  };
-  types: PokemonType[];
+  sprites: PokemonSprites;
+  types: PokemonTypeInfo[];
 }
 
-// Fetch data Pokemon dari API untuk Pokémon spesifik
-const {
-  data: pokemonDetail,
-  pending,
-  error,
-} = await useFetch<PokemonDetail>(apiUrl);
+const apiUrl = `https://pokeapi.co/api/v2/pokemon/${pokemonName}`;
+const { data: pokemon, pending, error } = await useFetch<PokemonDetail>(apiUrl);
+
+// Computed property untuk mendapatkan URL gambar dengan aman
+const imageUrl = computed(
+  () => pokemon.value?.sprites.other?.dream_world.front_default
+);
 </script>
 
-<style scoped>
-/* `scoped` berarti style ini hanya berlaku untuk komponen ini */
-.pokemon-details {
-  text-align: center;
-  text-transform: capitalize;
-}
+<template>
+  <UContainer>
+    <div class="py-12">
+      <div v-if="pending" class="text-center">
+        <p>Memuat detail Pokémon...</p>
+      </div>
+      <div v-else-if="error" class="text-center">
+        <h2 class="text-2xl font-bold">Pokémon Tidak Ditemukan</h2>
+        <UButton to="/" label="Kembali" class="mt-4" />
+      </div>
 
-.pokemon-image {
-  width: 150px;
-  height: 150px;
-}
+      <UCard v-else-if="pokemon">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 items-center">
+          <div
+            class="flex justify-center bg-gray-100 dark:bg-gray-800 rounded-lg p-4"
+          >
+            <img
+              v-if="imageUrl"
+              :src="imageUrl"
+              :alt="pokemon.name"
+              class="h-64 w-64 object-contain"
+            />
+            <div v-else class="h-64 w-64 flex items-center justify-center">
+              <p>Gambar tidak tersedia</p>
+            </div>
+          </div>
 
-.info {
-  margin: 1rem 0;
-}
+          <div>
+            <h1 class="text-4xl font-bold capitalize mb-4">
+              {{ pokemon.name }}
+            </h1>
 
-.info ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
-</style>
+            <div class="mb-6">
+              <h2 class="text-xl font-semibold mb-2">Types</h2>
+              <div class="flex gap-2">
+                <UBadge
+                  v-for="item in pokemon.types"
+                  :key="item.type.name"
+                  :label="item.type.name"
+                  size="lg"
+                  variant="subtle"
+                />
+              </div>
+            </div>
+
+            <div class="mb-6">
+              <h2 class="text-xl font-semibold mb-2">Details</h2>
+              <ul class="list-disc list-inside">
+                <li>Height: {{ pokemon.height / 10 }} m</li>
+                <li>Weight: {{ pokemon.weight / 10 }} kg</li>
+              </ul>
+            </div>
+
+            <UButton
+              to="/"
+              label="Kembali ke Daftar Pokémon"
+              icon="i-heroicons-arrow-left"
+            />
+          </div>
+        </div>
+      </UCard>
+    </div>
+  </UContainer>
+</template>

@@ -1,19 +1,15 @@
 <template>
-  <div>
-    <h1 class="title">Daftar Pokémon</h1>
+  <UContainer>
+    <h1 class="text-3xl font-blod text-center my-8">Nuxt Pokédex</h1>
 
     <div v-if="pending" class="loading">Memuat data...</div>
 
-    <div v-else-if="error" class="error">
-      Terjadi kesalahan: {{ error.message }}
+    <div v-else class="grid-container">
+      <div v-for="pokemon in pokemonResponse?.results" :key="pokemon.name">
+        <PokemonCard :name="pokemon.name" :url="pokemon.url" />
+      </div>
     </div>
-
-    <ul v-else-if="pokemonResponse && pokemonResponse.results">
-      <li v-for="pokemon in pokemonResponse.results" :key="pokemon.name">
-        <NuxtLink :to="`/pokemon/${pokemon.name}`">{{ pokemon.name }}</NuxtLink>
-      </li>
-    </ul>
-  </div>
+  </UContainer>
 </template>
 
 <script lang="ts" setup>
@@ -29,7 +25,7 @@ interface PokemonResponse {
 }
 
 // Url dari PokéAPI
-const apiUrl = "https://pokeapi.co/api/v2/pokemon?limit=151";
+const apiUrl = "https://pokeapi.co/api/v2/pokemon?limit=20";
 
 // Fungsi untuk mengambil data Pokemon dari API
 const {
@@ -40,18 +36,9 @@ const {
 </script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 2rem;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  padding: 0.5rem 0;
-  text-transform: capitalize;
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
 }
 </style>
