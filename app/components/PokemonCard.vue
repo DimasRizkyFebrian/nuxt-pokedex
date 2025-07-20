@@ -1,6 +1,13 @@
 <template>
   <NuxtLink :to="`/pokemon/${props.name}`">
-    <UCard class="text-center transition hover:scale-105 hover:shadow-lg">
+    <UCard
+      class="text-center transition hover:scale-105 hover:shadow-lg hover:bg-gray-700"
+      :ui="{
+        ring: 'ring-4 ring-black',
+        rounded: 'rounded-none',
+        body: { padding: 'p-2' },
+      }"
+    >
       <template #header>
         <p class="text-gray-500 dark:text-gray-400">#{{ pokemonId }}</p>
       </template>

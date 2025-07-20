@@ -10,14 +10,14 @@
         <UButton
           label="Semua"
           size="sm"
-          :variant="!activeTypeUrl ? 'solid' : 'outline'"
+          :variant="!activeTypeUrl ? 'solid' : 'subtle'"
           @click="activeTypeUrl = null"
         />
         <UButton
           v-for="type in relevantTypes"
           :key="type.name"
           :label="type.name"
-          :variant="activeTypeUrl === type.url ? 'solid' : 'outline'"
+          :variant="activeTypeUrl === type.url ? 'solid' : 'subtle'"
           size="sm"
           class="capitalize"
           @click="activeTypeUrl = type.url"
