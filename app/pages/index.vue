@@ -1,8 +1,33 @@
 <template>
-  <UContainer>
-    <h1 class="text-3xl font-blod text-center my-8">Nuxt Pokédex</h1>
+  <UContainer class="py-12">
+    <h1 class="text-3xl font-bold text-center my-8">Nuxt Pokédex</h1>
 
     <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-3 text-center">
+        Filter Berdasarkan Tipe
+      </h2>
+      <div class="flex flex-wrap gap-2 justify-center">
+        <UButton
+          label="Semua"
+          size="sm"
+          :variant="!activeTypeUrl ? 'solid' : 'outline'"
+          @click="activeTypeUrl = null"
+        />
+        <UButton
+          v-for="type in relevantTypes"
+          :key="type.name"
+          :label="type.name"
+          :variant="activeTypeUrl === type.url ? 'solid' : 'outline'"
+          size="sm"
+          class="capitalize"
+          @click="activeTypeUrl = type.url"
+        />
+      </div>
+    </div>
+
+    <div class="mb-8 border-b border-gray-200 dark:border-gray-700"></div>
+
+    <div class="mb-8">
       <UInput
         v-model="searchQuery"
         placeholder="Cari Pokémon..."
@@ -11,10 +36,13 @@
       />
     </div>
 
-    <div v-if="pending" class="loading">Memuat data...</div>
+    <div v-if="pendingPokemon" class="loading text-center">Memuat data...</div>
 
-    <div v-else-if="filteredPokemon.length === 0" class="text-center">
-      <p>Tidak ada Pokémon yang cocok dengan "{{ searchQuery }}".</p>
+    <div
+      v-else-if="!filteredPokemon || filteredPokemon.length === 0"
+      class="text-center"
+    >
+      <p>Tidak ada Pokémon yang cocok dengan kriteria.</p>
     </div>
 
     <div v-else class="grid-container">
@@ -26,46 +54,75 @@
 </template>
 
 <script lang="ts" setup>
-// Tipe data untuk hasil individu Pokemon
+// --- INTERFACES (Tipe Data) ---
 interface Pokemon {
   name: string;
   url: string;
 }
-
-// Tipe data untuk respons API
-interface PokemonResponse {
-  results: Pokemon[];
+interface PokemonType {
+  name: string;
+  url: string;
+}
+interface TypesResponse {
+  results: PokemonType[];
 }
 
-// Url dari PokéAPI
-const apiUrl = "https://pokeapi.co/api/v2/pokemon?limit=151";
+// --- DATA FETCHING ---
+// 1. State untuk menyimpan URL tipe yang aktif. null berarti "Semua".
+const activeTypeUrl = useState<string | null>("activeTypeUrl", () => null);
 
-// Fungsi untuk mengambil data Pokemon dari API
-const { data: pokemonResponse, pending } = await useFetch<PokemonResponse>(
-  apiUrl
+// Fetch daftar tipe Pokémon (tetap sama)
+const { data: typesResponse } = await useFetch<TypesResponse>(
+  "https://pokeapi.co/api/v2/type"
 );
 
-// State untuk menyimpan keyword pencarian
+// 2. useAsyncData akan berjalan ulang setiap kali 'activeTypeUrl' berubah.
+const { data: pokemonList, pending: pendingPokemon } = await useAsyncData(
+  "pokemonList",
+  async () => {
+    let url = "https://pokeapi.co/api/v2/pokemon?limit=151";
+    if (activeTypeUrl.value) {
+      url = activeTypeUrl.value; // Jika ada tipe yang aktif, gunakan URL tersebut.
+    }
+
+    const data = await $fetch<any>(url);
+
+    // Normalisasi data
+    if (activeTypeUrl.value) {
+      // Jika dari enpoint 'type', datanya ada di 'data.pokemon'
+      return data.pokemon.map((p: any) => p.pokemon) as Pokemon[];
+    } else {
+      // Jika dari enpoint 'pokemon', datanya ada di 'data.results'
+      return data.results as Pokemon[];
+    }
+  },
+  { watch: [activeTypeUrl] } // Perintah untuk menonton perubahan pada activeTypeUrl
+);
+
+// --- COMPUTED PROPERTIES ---
 const searchQuery = useState("searchQuery", () => "");
 
-// Computed property untuk daftar pokemon yang terfilter berdasarkan keyword pencarian
+// Computed untuk menyaring tipe yang tidak relevan
+const relevantTypes = computed(() => {
+  if (!typesResponse.value) return [];
+  return typesResponse.value.results.filter(
+    (type) => type.name !== "unknown" && type.name !== "shadow"
+  );
+});
+
+// Filter Pokémon berdasarkan pencarian. Sumbernya sekarang 'pokemonList'.
 const filteredPokemon = computed(() => {
-  // Jika data belum ada, kembalikan array kosong
-  if (!pokemonResponse.value) {
-    return [];
-  }
-  // Jika kotak pencarian kosong, tampilkan semua pokemon
+  if (!pokemonList.value) return [];
   if (!searchQuery.value) {
-    return pokemonResponse.value.results;
+    return pokemonList.value;
   }
-  // Jika ada isinya, filter berdasarkan nama
-  return pokemonResponse.value.results.filter((pokemon) =>
+  return pokemonList.value.filter((pokemon) =>
     pokemon.name.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
 </script>
 
-<style>
+<style scoped>
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
