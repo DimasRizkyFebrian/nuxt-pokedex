@@ -8,8 +8,8 @@ Proyek ini adalah aplikasi web Pokédex yang dibangun sebagai sarana belajar fra
 
 ## 📸 Screenshot Aplikasi
 
-![Screenshot Pokédex Nuxt 4](docs\images\homepage-preview.png)
-![Screenshot Pokédex Nuxt 4](docs\images\detailpage-preview.png)
+![Screenshot Pokédex Nuxt 4](./docs/images/homepage-preview.png)
+![Screenshot Pokédex Nuxt 4](./docs/images/pokemon-detail-preview.png)
 
 ## ✨ Fitur Utama
 
