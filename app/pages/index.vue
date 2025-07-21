@@ -48,11 +48,11 @@
         <p>Tidak ada Pokémon yang cocok dengan kriteria.</p>
       </div>
 
-      <div v-else class="grid-container">
+      <TransitionGroup tag="div" name="list" class="grid-container">
         <div v-for="pokemon in filteredPokemon" :key="pokemon.name">
           <PokemonCard :name="pokemon.name" :url="pokemon.url" />
         </div>
-      </div>
+      </TransitionGroup>
     </UContainer>
   </div>
 </template>
