@@ -2,7 +2,7 @@
 const route = useRoute();
 const pokemonName = route.params.name as string;
 
-// Definisikan interface agar lebih aman dan jelas
+// --- INTERFACES ---
 interface PokemonTypeInfo {
   type: {
     name: string;
@@ -18,6 +18,7 @@ interface PokemonSprites {
 }
 
 interface PokemonDetail {
+  id: number;
   name: string;
   height: number;
   weight: number;
@@ -25,8 +26,53 @@ interface PokemonDetail {
   types: PokemonTypeInfo[];
 }
 
+// --- DATA FETCHING ---
+// 1. Fetch Pokemon Detail
 const apiUrl = `https://pokeapi.co/api/v2/pokemon/${pokemonName}`;
 const { data: pokemon, pending, error } = await useFetch<PokemonDetail>(apiUrl);
+
+// 2. Fetch data rantai evolusi
+const { data: evolutionChainData } = await useAsyncData(
+  "evolutionChain",
+  async () => {
+    if (!pokemon.value) return null;
+
+    // Dapatkan URL Pokemon Species dari ID pokemon
+    const speciesData = await $fetch<any>(
+      `https://pokeapi.co/api/v2/pokemon-species/${pokemon.value.id}/`
+    );
+
+    // Dari data species, ambil URL untuk evolution chain
+    const evolutionChainUrl = speciesData.evolution_chain.url;
+
+    // Ambil data dari URL evolution chain dan kembalikan
+    return await $fetch<any>(evolutionChainUrl);
+  },
+  {
+    watch: [pokemon], // Perintah agar useAsyncData ini dijalankan ulang jika 'pokemon' berubah
+  }
+);
+
+// Computed property untuk mem-parsing data evolusi menjadi array sederhana
+const evolutionList = computed(() => {
+  if (!evolutionChainData.value) return [];
+
+  const evolutionLine: { name: string; id: string }[] = [];
+  let currentStage = evolutionChainData.value.chain;
+
+  // Loop untuk menelusuri pohon evolusi
+  while (currentStage) {
+    const speciesName = currentStage.species.name;
+    const urlParts = currentStage.species.url.split("/");
+    const speciesId = urlParts[urlParts.length - 2];
+
+    evolutionLine.push({ name: speciesName, id: speciesId });
+
+    // Pindah ke tahap evolusi berikutnya
+    currentStage = currentStage.evolves_to?.[0];
+  }
+  return evolutionLine;
+});
 
 // Computed property untuk mendapatkan URL gambar dengan aman
 const imageUrl = computed(
@@ -98,6 +144,25 @@ const imageUrl = computed(
         </UCard>
       </div>
     </UContainer>
+
+    <UContainer
+      v-if="evolutionList && evolutionList.length > 1"
+      class="evolution-card py-8"
+    >
+      <h2 class="text-2xl font-bold text-center mb-4 font-pixel">
+        Evolution Chain
+      </h2>
+      <div class="flex justify-center items-center gap-4 flex-wrap">
+        <template v-for="(evolution, index) in evolutionList">
+          <EvolutionStage :name="evolution.name" :id="evolution.id" />
+          <UIcon
+            v-if="index < evolutionList.length - 1"
+            name="i-heroicons-arrow-right-20-solid"
+            class="h-8 w-8"
+          />
+        </template>
+      </div>
+    </UContainer>
   </div>
 </template>
 
@@ -112,7 +177,14 @@ const imageUrl = computed(
   min-height: 100vh;
 
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+}
+
+.evolution-card {
+  background-color: rgba(31, 41, 55, 0.6);
+  width: 40%;
+  border-radius: 10px 10px 10px 10px;
 }
 </style>
