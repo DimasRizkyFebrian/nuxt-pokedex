@@ -52,7 +52,7 @@ Untuk menjalankan proyek ini secara lokal, ikuti langkah-langkah berikut:
 
 1.  **Clone repositori ini:**
     ```bash
-    git clone [https://github.com/dimasrizkyfebrian/nuxt-pokedex.git](https://github.com/dimasrizkyfebrian/nuxt-pokedex.git)
+    git clone https://github.com/dimasrizkyfebrian/nuxt-pokedex.git
     ```
 2.  **Masuk ke direktori proyek:**
     ```bash
