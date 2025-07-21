@@ -1,56 +1,60 @@
 <template>
-  <UContainer class="py-12">
-    <h1 class="text-3xl font-bold text-center my-8">Nuxt Pokédex</h1>
+  <div class="main-page-wrapper">
+    <UContainer class="py-12">
+      <h1 class="text-4xl font-bold text-center my-8">Nuxt Pokédex</h1>
 
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold mb-3 text-center">
-        Filter Berdasarkan Tipe
-      </h2>
-      <div class="flex flex-wrap gap-2 justify-center">
-        <UButton
-          label="Semua"
-          size="sm"
-          :variant="!activeTypeUrl ? 'solid' : 'subtle'"
-          @click="activeTypeUrl = null"
-        />
-        <UButton
-          v-for="type in relevantTypes"
-          :key="type.name"
-          :label="type.name"
-          :variant="activeTypeUrl === type.url ? 'solid' : 'subtle'"
-          size="sm"
-          class="capitalize"
-          @click="activeTypeUrl = type.url"
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold mb-3 text-center">
+          Filter Berdasarkan Tipe
+        </h2>
+        <div class="flex flex-wrap gap-2 justify-center">
+          <UButton
+            label="Semua"
+            size="sm"
+            :variant="!activeTypeUrl ? 'solid' : 'subtle'"
+            @click="activeTypeUrl = null"
+          />
+          <UButton
+            v-for="type in relevantTypes"
+            :key="type.name"
+            :label="type.name"
+            :variant="activeTypeUrl === type.url ? 'solid' : 'subtle'"
+            size="sm"
+            class="capitalize"
+            @click="activeTypeUrl = type.url"
+          />
+        </div>
+      </div>
+
+      <div class="mb-8 border-b border-gray-200 dark:border-gray-700"></div>
+
+      <div class="mb-8">
+        <UInput
+          v-model="searchQuery"
+          placeholder="Cari Pokémon..."
+          icon="i-heroicons-magnifying-glass"
+          size="lg"
         />
       </div>
-    </div>
 
-    <div class="mb-8 border-b border-gray-200 dark:border-gray-700"></div>
-
-    <div class="mb-8">
-      <UInput
-        v-model="searchQuery"
-        placeholder="Cari Pokémon..."
-        icon="i-heroicons-magnifying-glass"
-        size="lg"
-      />
-    </div>
-
-    <div v-if="pendingPokemon" class="loading text-center">Memuat data...</div>
-
-    <div
-      v-else-if="!filteredPokemon || filteredPokemon.length === 0"
-      class="text-center"
-    >
-      <p>Tidak ada Pokémon yang cocok dengan kriteria.</p>
-    </div>
-
-    <div v-else class="grid-container">
-      <div v-for="pokemon in filteredPokemon" :key="pokemon.name">
-        <PokemonCard :name="pokemon.name" :url="pokemon.url" />
+      <div v-if="pendingPokemon" class="loading text-center">
+        Memuat data...
       </div>
-    </div>
-  </UContainer>
+
+      <div
+        v-else-if="!filteredPokemon || filteredPokemon.length === 0"
+        class="text-center"
+      >
+        <p>Tidak ada Pokémon yang cocok dengan kriteria.</p>
+      </div>
+
+      <div v-else class="grid-container">
+        <div v-for="pokemon in filteredPokemon" :key="pokemon.name">
+          <PokemonCard :name="pokemon.name" :url="pokemon.url" />
+        </div>
+      </div>
+    </UContainer>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -123,6 +127,14 @@ const filteredPokemon = computed(() => {
 </script>
 
 <style scoped>
+.main-page-wrapper {
+  background-image: url("/images/bg-detail.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
