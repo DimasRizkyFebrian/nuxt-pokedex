@@ -6,6 +6,7 @@ const pokemonName = route.params.name as string;
 interface PokemonTypeInfo {
   type: {
     name: string;
+    url: string;
   };
 }
 
@@ -73,6 +74,60 @@ const evolutionList = computed(() => {
   }
   return evolutionLine;
 });
+
+// --- TYPE EFFECTIVENESS ---
+const { data: effectivenessData } = await useAsyncData(
+  "effectiveness",
+  async () => {
+    if (!pokemon.value) return null;
+
+    // Daftar promise untuk mengambil detail dari setiap tipe
+    const promises = pokemon.value.types.map((typeInfo) =>
+      $fetch<any>(typeInfo.type.url)
+    );
+    // Jalankan semua promise secara paralel
+    const typesDetails = await Promise.all(promises);
+    // Siapkan Set untuk menampung data unik
+    const weaknesses = new Set<string>(); // Lemah terhadap (damage x2)
+    const resistances = new Set<string>(); // Tahan terhadap (damage x0.5)
+    const immunities = new Set<string>(); // Imun terhadap (damage x0)
+
+    // Proses hasil dari setiap tipe dan masukkan ke Set
+    for (const detail of typesDetails) {
+      detail.damage_relations.double_damage_from.forEach((type: any) =>
+        weaknesses.add(type.name)
+      );
+      detail.damage_relations.half_damage_from.forEach((type: any) =>
+        resistances.add(type.name)
+      );
+      detail.damage_relations.no_damage_from.forEach((type: any) =>
+        immunities.add(type.name)
+      );
+    }
+
+    // Jika suatu tipe ada di kelemahan dan ketahanan, maka jadi normal (dihapus dari keduanya)
+    for (const type of weaknesses) {
+      if (resistances.has(type)) {
+        weaknesses.delete(type);
+        resistances.delete(type);
+      }
+    }
+
+    // Imunitas mengalahkan segalanya
+    for (const type of immunities) {
+      weaknesses.delete(type);
+      resistances.delete(type);
+    }
+
+    // Kembalikan hasil yang sudah bersih
+    return {
+      weaknesses: Array.from(weaknesses),
+      resistances: Array.from(resistances),
+      immunities: Array.from(immunities),
+    };
+  },
+  { watch: [pokemon] }
+);
 
 // Computed property untuk mendapatkan URL gambar dengan aman
 const imageUrl = computed(
@@ -145,24 +200,83 @@ const imageUrl = computed(
       </div>
     </UContainer>
 
-    <UContainer
-      v-if="evolutionList && evolutionList.length > 1"
-      class="evolution-card py-8"
-    >
-      <h2 class="text-2xl font-bold text-center mb-4 font-pixel">
-        Evolution Chain
-      </h2>
-      <div class="flex justify-center items-center gap-4 flex-wrap">
-        <template v-for="(evolution, index) in evolutionList">
-          <EvolutionStage :name="evolution.name" :id="evolution.id" />
-          <UIcon
-            v-if="index < evolutionList.length - 1"
-            name="i-heroicons-arrow-right-20-solid"
-            class="h-8 w-8"
-          />
-        </template>
-      </div>
-    </UContainer>
+    <div class="detail-type w-400 gap-4">
+      <UContainer
+        v-if="evolutionList && evolutionList.length > 1"
+        class="evolution-card py-8"
+      >
+        <h2 class="text-2xl font-bold text-center mb-4 font-pixel">
+          Evolution Chain
+        </h2>
+        <div class="flex justify-center items-center gap-4 flex-wrap">
+          <template v-for="(evolution, index) in evolutionList">
+            <EvolutionStage :name="evolution.name" :id="evolution.id" />
+            <UIcon
+              v-if="index < evolutionList.length - 1"
+              name="i-heroicons-arrow-right-20-solid"
+              class="h-8 w-8"
+            />
+          </template>
+        </div>
+      </UContainer>
+
+      <UContainer
+        v-if="effectivenessData"
+        class="type-effectiveness py-8 text-center flex flex-col gap-2"
+      >
+        <h2 class="text-2xl font-bold text-center mb-4 font-pixel">
+          Type Effectiveness
+        </h2>
+
+        <div v-if="effectivenessData.weaknesses.length > 0" class="mb-3">
+          <h3 class="font-medium mb-1 text-sm text-gray-500 dark:text-gray-400">
+            Weak Against (x2)
+          </h3>
+          <div class="flex justify-center gap-2">
+            <UBadge
+              v-for="type in effectivenessData.weaknesses"
+              :key="type"
+              :label="type"
+              color="error"
+              variant="soft"
+              class="capitalize"
+            />
+          </div>
+        </div>
+
+        <div v-if="effectivenessData.resistances.length > 0" class="mb-3">
+          <h3 class="font-medium mb-1 text-sm text-gray-500 dark:text-gray-400">
+            Resistant To (x0.5)
+          </h3>
+          <div class="flex justify-center gap-2">
+            <UBadge
+              v-for="type in effectivenessData.resistances"
+              :key="type"
+              :label="type"
+              color="success"
+              variant="soft"
+              class="capitalize"
+            />
+          </div>
+        </div>
+
+        <div v-if="effectivenessData.immunities.length > 0">
+          <h3 class="font-medium mb-1 text-sm text-gray-500 dark:text-gray-400">
+            Immune To (x0)
+          </h3>
+          <div class="flex justify-center gap-2">
+            <UBadge
+              v-for="type in effectivenessData.immunities"
+              :key="type"
+              :label="type"
+              color="neutral"
+              variant="soft"
+              class="capitalize"
+            />
+          </div>
+        </div>
+      </UContainer>
+    </div>
   </div>
 </template>
 
@@ -182,9 +296,14 @@ const imageUrl = computed(
   align-items: center;
 }
 
-.evolution-card {
-  background-color: rgba(31, 41, 55, 0.6);
-  width: 40%;
+.detail-type {
+  display: flex;
+  flex-direction: row;
+}
+
+.evolution-card,
+.type-effectiveness {
+  background-color: rgba(31, 41, 55, 0.8);
   border-radius: 10px 10px 10px 10px;
 }
 </style>
